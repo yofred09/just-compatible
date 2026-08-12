@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "yofred.dev.justcompatible.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "VineryWineClockMixin",
+    "StarcatcherDimensionRestrictionMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

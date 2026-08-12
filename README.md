@@ -1,0 +1,33 @@
+# Just Compatible
+
+Server-side compatibility diagnostics and safe migration framework for Minecraft 1.21.1 NeoForge.
+
+## Simple use
+
+Install it on the server with Just Core. Runtime fixes for Vinery, Starcatcher and Bountiful Baubles activate automatically when those mods are present.
+
+Optional integrations deliberately declare no mod version range. Reference JARs are compile-time fixtures only. At runtime, each adapter checks the API shape it needs; an incompatible redesign disables that adapter instead of preventing the server from starting.
+
+`/justcompatible scan` shows active integrations and performs a Waystones dry run. `/justcompatible repair` applies only unambiguous Waystones migrations after writing a backup.
+
+## Safety rules
+
+- No dimension name is hardcoded.
+- Runtime adapters do not write chunks, inventories, or `level.dat`.
+- Waystones is the only persistent migration. It requires UUID + position evidence, backs up first, and rolls the whole in-memory batch back if rebuilding its index fails.
+- Unknown and ambiguous records are reported and left untouched.
+
+## Integrations
+
+- **Waystones:** safe dimension migration while preserving UUIDs and discoveries.
+- **Vinery:** reads the greatest active server-dimension clock, preventing wine age from going backwards without rewriting bottles.
+- **Starcatcher:** recognizes Overworld-/Nether-/End-like dimensions from their vanilla dimension effects rather than configured world names.
+- **Bountiful Baubles:** after login or dimension travel, removes only stale `bountifulbaubles:*` player attribute IDs and reapplies the rolls from currently equipped Bountiful Curios.
+
+## Advanced Waystones migration
+
+`/justcompatible waystones scan` performs a dry run. It detects moved waystones by matching the stored UUID and block position against active dimensions. No dimension identifier is hardcoded.
+
+`/justcompatible waystones repair` writes a JSON backup, updates only unambiguous matches, rebuilds Waystones indexes, and synchronizes online players. Player discoveries remain valid because waystone UUIDs are preserved.
+
+Optional mappings can be configured as `old_namespace:world=new_namespace:world`, but they are accepted only when the destination contains a matching waystone UUID at the same position.
