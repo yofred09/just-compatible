@@ -2,6 +2,8 @@
 
 Server-side compatibility diagnostics and safe migration framework for Minecraft 1.21.1 NeoForge.
 
+Community, support and bug reports: [join the yofred.dev Discord](https://discord.gg/cCHeBPKkD).
+
 ## Simple use
 
 Install it on the server with Just Core. Runtime fixes for Vinery, Starcatcher and Bountiful Baubles activate automatically when those mods are present.
@@ -23,6 +25,7 @@ Optional integrations deliberately declare no mod version range. Reference JARs 
 - **Vinery:** reads the greatest active server-dimension clock, preventing wine age from going backwards without rewriting bottles.
 - **Starcatcher:** recognizes Overworld-/Nether-/End-like dimensions from their vanilla dimension effects rather than configured world names.
 - **Bountiful Baubles:** after login or dimension travel, removes only stale `bountifulbaubles:*` player attribute IDs and reapplies the rolls from currently equipped Bountiful Curios.
+- **Vanilla Vaults:** detects absolute Vault timers inherited from a world with a later game clock. `/justcompatible vaults scan` is read-only; `/justcompatible vaults repair` backs up and resets only impossible timers while preserving keys, loot tables, states, and rewarded players. It never scans or loads chunks and does not match Create Item Vaults.
 
 ## Advanced Waystones migration
 

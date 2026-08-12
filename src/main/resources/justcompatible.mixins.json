@@ -5,7 +5,9 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "VineryWineClockMixin",
-    "StarcatcherDimensionRestrictionMixin"
+    "StarcatcherDimensionRestrictionMixin",
+    "VaultServerTickMixin",
+    "VaultServerDataAccessor"
   ],
   "injectors": {
     "defaultRequire": 0

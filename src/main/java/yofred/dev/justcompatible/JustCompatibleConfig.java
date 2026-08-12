@@ -27,6 +27,12 @@ public final class JustCompatibleConfig {
     public static final ModConfigSpec.BooleanValue BOUNTIFUL_RECONCILE = BUILDER
             .comment("Reconcile only Bountiful Baubles attribute IDs with currently equipped Curios after login or dimension travel.")
             .define("integrations.bountifulBaubles.reconcileAttributes", true);
+    public static final ModConfigSpec.BooleanValue VAULT_TIMERS_ENABLED = BUILDER
+            .comment("Detect migrated vanilla Vaults whose absolute update timer is far ahead of the current world clock.")
+            .define("integrations.vaults.timerRepair", true);
+    public static final ModConfigSpec.LongValue VAULT_MAX_FUTURE_TICKS = BUILDER
+            .comment("A Vault timer farther ahead than this is considered migrated. Vanilla delays are only a few ticks.")
+            .defineInRange("integrations.vaults.maxFutureTicks", 1200L, 200L, 1728000L);
 
     public static final ModConfigSpec SPEC = BUILDER.build();
 

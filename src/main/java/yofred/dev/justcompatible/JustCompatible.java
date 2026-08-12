@@ -15,7 +15,7 @@ import net.neoforged.fml.ModList;
 @Mod(JustCompatible.MODID)
 public final class JustCompatible {
     public static final String MODID = "justcompatible";
-    public static final String VERSION = "0.2.1";
+    public static final String VERSION = "0.3.0";
     public static final Logger LOGGER = LoggerFactory.getLogger("Just Compatible");
 
     public JustCompatible(IEventBus modBus, ModContainer container) {

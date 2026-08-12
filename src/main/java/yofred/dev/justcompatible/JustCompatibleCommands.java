@@ -2,12 +2,14 @@ package yofred.dev.justcompatible;
 
 import com.mojang.brigadier.CommandDispatcher;
 import java.nio.file.Path;
+import java.io.IOException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import yofred.dev.justcompatible.compat.waystones.WaystoneMigration;
+import yofred.dev.justcompatible.compat.vault.VaultTimerMigration;
 
 public final class JustCompatibleCommands {
     public static void register(RegisterCommandsEvent event) {
@@ -23,7 +25,12 @@ public final class JustCompatibleCommands {
                         .then(Commands.literal("scan").executes(context -> scan(context.getSource())))
                         .then(Commands.literal("repair")
                                 .requires(source -> source.hasPermission(4))
-                                .executes(context -> repair(context.getSource())))));
+                                .executes(context -> repair(context.getSource()))))
+                .then(Commands.literal("vaults")
+                        .then(Commands.literal("scan").executes(context -> scanVaults(context.getSource())))
+                        .then(Commands.literal("repair")
+                                .requires(source -> source.hasPermission(4))
+                                .executes(context -> repairVaults(context.getSource())))));
     }
 
     private static int info(CommandSourceStack source) {
@@ -32,20 +39,60 @@ public final class JustCompatibleCommands {
         source.sendSuccess(() -> Component.literal("Vinery shared clock: " + integrationStatus("vinery", JustCompatibleConfig.VINERY_SHARED_CLOCK.get(), CompatibilityProbe.vinerySupported())), false);
         source.sendSuccess(() -> Component.literal("Starcatcher dimension detection: " + integrationStatus("starcatcher", JustCompatibleConfig.STARCATCHER_DIMENSION_EFFECTS.get(), CompatibilityProbe.starcatcherSupported())), false);
         source.sendSuccess(() -> Component.literal("Bountiful Baubles reconciliation: " + integrationStatus("bountifulbaubles", JustCompatibleConfig.BOUNTIFUL_RECONCILE.get(), CompatibilityProbe.bountifulSupported())), false);
+        source.sendSuccess(() -> Component.literal("Vanilla Vault timer migration: " + (JustCompatibleConfig.VAULT_TIMERS_ENABLED.get() ? "active" : "disabled")), false);
         return 1;
     }
 
     private static int scanAll(CommandSourceStack source) {
         info(source);
-        if (CompatibilityProbe.waystonesSupported() && JustCompatibleConfig.WAYSTONES_ENABLED.get()) return scan(source);
-        source.sendSuccess(() -> Component.literal("No persistent data requires migration. Runtime adapters do not write world data."), false);
-        return 1;
+        int waystones = CompatibilityProbe.waystonesSupported() && JustCompatibleConfig.WAYSTONES_ENABLED.get() ? scan(source) : 0;
+        int vaults = scanVaults(source);
+        return waystones + vaults;
     }
 
     private static int repairAll(CommandSourceStack source) {
-        if (CompatibilityProbe.waystonesSupported() && JustCompatibleConfig.WAYSTONES_ENABLED.get()) return repair(source);
-        source.sendSuccess(() -> Component.literal("Nothing persistent to repair. Runtime adapters are already active."), false);
-        return 1;
+        int waystones = CompatibilityProbe.waystonesSupported() && JustCompatibleConfig.WAYSTONES_ENABLED.get() ? repair(source) : 0;
+        int vaults = repairVaults(source);
+        return waystones + vaults;
+    }
+
+    private static int scanVaults(CommandSourceStack source) {
+        if (!JustCompatibleConfig.VAULT_TIMERS_ENABLED.get()) {
+            source.sendFailure(Component.literal("The Vault timer adapter is disabled in the server config."));
+            return 0;
+        }
+        VaultTimerMigration.ScanResult result = VaultTimerMigration.scan(source.getServer());
+        source.sendSuccess(() -> Component.literal("Found " + result.observations().size()
+                + " loaded Vaults with migrated future timers."), false);
+        result.observations().stream().limit(50).forEach(observation -> source.sendSuccess(() -> Component.literal(
+                observation.key().dimension().location() + " " + observation.key().pos().toShortString()
+                        + ": deadline=" + observation.deadline() + ", gameTime=" + observation.observedGameTime()
+                        + ", excess=" + observation.excessTicks() + " ticks"), false));
+        source.sendSuccess(() -> Component.literal("Dry run only. The scan never loads chunks. Visit a Vault first if it is not listed."), false);
+        return result.observations().size();
+    }
+
+    private static int repairVaults(CommandSourceStack source) {
+        if (!JustCompatibleConfig.VAULT_TIMERS_ENABLED.get()) {
+            source.sendFailure(Component.literal("The Vault timer adapter is disabled in the server config."));
+            return 0;
+        }
+        VaultTimerMigration.ScanResult result = VaultTimerMigration.scan(source.getServer());
+        if (result.observations().isEmpty()) {
+            source.sendSuccess(() -> Component.literal("No loaded Vault timers require repair."), false);
+            return 0;
+        }
+        try {
+            VaultTimerMigration.RepairResult repaired = VaultTimerMigration.repair(source.getServer(), result);
+            source.sendSuccess(() -> Component.literal("Repaired " + repaired.repaired()
+                    + " Vault timers without changing keys, loot tables, or rewarded players. Backup: "
+                    + repaired.backup()), true);
+            return repaired.repaired();
+        } catch (IOException exception) {
+            JustCompatible.LOGGER.error("Vault timer repair failed", exception);
+            source.sendFailure(Component.literal("Vault repair aborted: " + exception.getMessage()));
+            return 0;
+        }
     }
 
     private static String status(String modId, boolean enabled) {
