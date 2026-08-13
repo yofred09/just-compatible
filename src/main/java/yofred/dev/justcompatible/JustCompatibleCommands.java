@@ -34,7 +34,7 @@ public final class JustCompatibleCommands {
     }
 
     private static int info(CommandSourceStack source) {
-        source.sendSuccess(() -> Component.literal("Just Compatible 0.2.1 (server-side)"), false);
+        source.sendSuccess(() -> Component.literal("Just Compatible " + JustCompatible.VERSION + " (server-side)"), false);
         source.sendSuccess(() -> Component.literal("Waystones adapter: " + CompatibilityProbe.status("waystones", CompatibilityProbe.waystonesSupported())), false);
         source.sendSuccess(() -> Component.literal("Vinery shared clock: " + integrationStatus("vinery", JustCompatibleConfig.VINERY_SHARED_CLOCK.get(), CompatibilityProbe.vinerySupported())), false);
         source.sendSuccess(() -> Component.literal("Starcatcher dimension detection: " + integrationStatus("starcatcher", JustCompatibleConfig.STARCATCHER_DIMENSION_EFFECTS.get(), CompatibilityProbe.starcatcherSupported())), false);
@@ -51,9 +51,8 @@ public final class JustCompatibleCommands {
     }
 
     private static int repairAll(CommandSourceStack source) {
-        int waystones = CompatibilityProbe.waystonesSupported() && JustCompatibleConfig.WAYSTONES_ENABLED.get() ? repair(source) : 0;
-        int vaults = repairVaults(source);
-        return waystones + vaults;
+        source.sendSuccess(() -> Component.literal("Global repair excludes Waystones because their migration requires an explicit command."), false);
+        return repairVaults(source);
     }
 
     private static int scanVaults(CommandSourceStack source) {

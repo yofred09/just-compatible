@@ -39,7 +39,7 @@ public final class CompatibilityProbe {
         try {
             Class<?> type = Class.forName(className, false, CompatibilityProbe.class.getClassLoader());
             return Arrays.stream(names).allMatch(name -> Arrays.stream(type.getMethods()).anyMatch(method -> method.getName().equals(name)));
-        } catch (LinkageError | ReflectiveOperationException failure) {
+        } catch (LinkageError | ReflectiveOperationException | RuntimeException failure) {
             JustCompatible.LOGGER.warn("Optional integration API unavailable: {}", className);
             return false;
         }

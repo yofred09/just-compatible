@@ -25,8 +25,11 @@ public final class JustCompatibleConfig {
             .comment("Treat dimensions with vanilla Overworld/Nether/End effects as their corresponding Starcatcher category.")
             .define("integrations.starcatcher.dimensionEffects", true);
     public static final ModConfigSpec.BooleanValue BOUNTIFUL_RECONCILE = BUILDER
-            .comment("Reconcile only Bountiful Baubles attribute IDs with currently equipped Curios after login or dimension travel.")
+            .comment("Reconcile Bountiful attributes and impossible item clocks after login or dimension travel.")
             .define("integrations.bountifulBaubles.reconcileAttributes", true);
+    public static final ModConfigSpec.LongValue BOUNTIFUL_MAX_FUTURE_TICKS = BUILDER
+            .comment("Cooldown deadlines farther ahead than this are treated as clocks migrated from another world. Maximum legitimate Bountiful cooldown is 6000 ticks.")
+            .defineInRange("integrations.bountifulBaubles.maxFutureTicks", 12000L, 6000L, 1728000L);
     public static final ModConfigSpec.BooleanValue VAULT_TIMERS_ENABLED = BUILDER
             .comment("Detect migrated vanilla Vaults whose absolute update timer is far ahead of the current world clock.")
             .define("integrations.vaults.timerRepair", true);

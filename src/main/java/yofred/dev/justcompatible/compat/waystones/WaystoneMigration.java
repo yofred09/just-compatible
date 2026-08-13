@@ -109,6 +109,7 @@ public final class WaystoneMigration {
 
     private static boolean matchesAt(ServerLevel level, Waystone expected) {
         if (level == null) return false;
+        if (!level.hasChunkAt(expected.getPos())) return false;
         try {
             return WaystonesAPI.getWaystoneAt(level, expected.getPos())
                     .map(actual -> actual.getWaystoneUid().equals(expected.getWaystoneUid()))
