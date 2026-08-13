@@ -139,8 +139,8 @@ public final class ModDoctorLocator implements IDependencyLocator {
         if (!Files.exists(config)) {
             Files.writeString(config,
                     "# Just Compatible early server mod-folder doctor. Files are moved, never deleted.\n" +
-                    "automaticSafeFixes=true\n", StandardCharsets.UTF_8);
-            return true;
+                    "automaticSafeFixes=false\n", StandardCharsets.UTF_8);
+            return false;
         }
         return Files.readAllLines(config, StandardCharsets.UTF_8).stream()
                 .map(String::trim)

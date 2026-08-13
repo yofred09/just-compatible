@@ -23,7 +23,7 @@ Optional integrations deliberately declare no mod version range. Reference JARs 
 
 ## Integrations
 
-- **Server Mod Doctor:** runs before normal NeoForge mod discovery on dedicated servers, detects explicit client-only JARs and conservative duplicate candidates, and moves safe matches to a reversible quarantine instead of deleting them. It writes `config/justcompatible-mod-doctor-report.txt`; automatic safe fixes can be disabled in `config/justcompatible-mod-doctor.properties`.
+- **Server Mod Doctor:** runs before normal NeoForge mod discovery on dedicated servers and detects explicit client-only JARs plus conservative duplicate candidates. It writes `config/justcompatible-mod-doctor-report.txt`. Automatic quarantine is opt-in during the 0.4.x validation period through `config/justcompatible-mod-doctor.properties`; files are moved reversibly and never deleted.
 
 - **Waystones:** safe dimension migration while preserving UUIDs and discoveries.
 - **Vinery:** reads the greatest active server-dimension clock, preventing wine age from going backwards without rewriting bottles.
