@@ -15,6 +15,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import top.theillusivec4.curios.api.CuriosApi;
 import yofred.dev.justcompatible.JustCompatible;
 import yofred.dev.justcompatible.JustCompatibleConfig;
@@ -27,6 +28,17 @@ public final class BountifulBaublesReconciler {
 
     public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) reconcile(player);
+    }
+
+    /** Repairs an item immediately before vanilla/mod item use, including items just removed from nested containers. */
+    public static void onRightClickItem(PlayerInteractEvent.RightClickItem event) {
+        if (!(event.getEntity() instanceof ServerPlayer player) || !JustCompatibleConfig.BOUNTIFUL_RECONCILE.get()) return;
+        int repaired = repairMigratedClock(event.getItemStack(), player.level().getGameTime(),
+                JustCompatibleConfig.BOUNTIFUL_MAX_FUTURE_TICKS.get());
+        if (repaired > 0) {
+            JustCompatible.LOGGER.info("Repaired a migrated Bountiful Baubles clock on use for {}",
+                    player.getGameProfile().getName());
+        }
     }
 
     public static void reconcile(ServerPlayer player) {
@@ -83,22 +95,28 @@ public final class BountifulBaublesReconciler {
 
         int repaired = 0;
         for (ItemStack stack : stacks) {
-            if (stack.isEmpty() || !BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace().equals("bountifulbaubles")) continue;
-            Long lastUse = stack.get(ModComponents.LAST_USE_TIME.get());
-            if (lastUse != null && lastUse > now) {
-                stack.set(ModComponents.LAST_USE_TIME.get(), Math.max(0L, now - 160L));
-                repaired++;
-            }
-            Long darkEgg = stack.get(ModComponents.DARK_EGG_COOLDOWN.get());
-            if (darkEgg != null && darkEgg > now + maxFuture) {
-                stack.remove(ModComponents.DARK_EGG_COOLDOWN.get());
-                repaired++;
-            }
-            Long madAura = stack.get(ModComponents.MAD_AURA_COOLDOWN.get());
-            if (madAura != null && madAura > now + maxFuture) {
-                stack.remove(ModComponents.MAD_AURA_COOLDOWN.get());
-                repaired++;
-            }
+            repaired += repairMigratedClock(stack, now, maxFuture);
+        }
+        return repaired;
+    }
+
+    private static int repairMigratedClock(ItemStack stack, long now, long maxFuture) {
+        if (stack.isEmpty() || !BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace().equals("bountifulbaubles")) return 0;
+        int repaired = 0;
+        Long lastUse = stack.get(ModComponents.LAST_USE_TIME.get());
+        if (lastUse != null && lastUse > now) {
+            stack.remove(ModComponents.LAST_USE_TIME.get());
+            repaired++;
+        }
+        Long darkEgg = stack.get(ModComponents.DARK_EGG_COOLDOWN.get());
+        if (darkEgg != null && darkEgg > now + maxFuture) {
+            stack.remove(ModComponents.DARK_EGG_COOLDOWN.get());
+            repaired++;
+        }
+        Long madAura = stack.get(ModComponents.MAD_AURA_COOLDOWN.get());
+        if (madAura != null && madAura > now + maxFuture) {
+            stack.remove(ModComponents.MAD_AURA_COOLDOWN.get());
+            repaired++;
         }
         return repaired;
     }

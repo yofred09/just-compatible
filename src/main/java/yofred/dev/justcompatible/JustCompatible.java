@@ -15,7 +15,7 @@ import net.neoforged.fml.ModList;
 @Mod(JustCompatible.MODID)
 public final class JustCompatible {
     public static final String MODID = "justcompatible";
-    public static final String VERSION = "0.3.1";
+    public static final String VERSION = "0.3.2";
     public static final Logger LOGGER = LoggerFactory.getLogger("Just Compatible");
 
     public JustCompatible(IEventBus modBus, ModContainer container) {
@@ -24,6 +24,7 @@ public final class JustCompatible {
         if (CompatibilityProbe.bountifulSupported()) {
             NeoForge.EVENT_BUS.addListener(BountifulBaublesReconciler::onLogin);
             NeoForge.EVENT_BUS.addListener(BountifulBaublesReconciler::onChangedDimension);
+            NeoForge.EVENT_BUS.addListener(BountifulBaublesReconciler::onRightClickItem);
         }
         JustCoreApi.registerModule(new JustModule(MODID, "Just Compatible", VERSION));
     }

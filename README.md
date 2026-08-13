@@ -24,7 +24,7 @@ Optional integrations deliberately declare no mod version range. Reference JARs 
 - **Waystones:** safe dimension migration while preserving UUIDs and discoveries.
 - **Vinery:** reads the greatest active server-dimension clock, preventing wine age from going backwards without rewriting bottles.
 - **Starcatcher:** recognizes Overworld-/Nether-/End-like dimensions from their vanilla dimension effects rather than configured world names.
-- **Bountiful Baubles:** after login or dimension travel, repairs stale attributes plus migrated absolute clocks on Endless Pearl, Dark Egg, Mad Aura, and Mind's Eye in the player's inventory, Ender Chest, Curios, or session state. It never scans worlds or loads chunks.
+- **Bountiful Baubles:** after login or dimension travel, repairs stale attributes plus migrated absolute clocks on Endless Pearl, Dark Egg, Mad Aura, and Mind's Eye in the player's inventory, Ender Chest, Curios, or session state. Since 0.3.2, an affected item is also repaired immediately on use, covering items removed from backpacks after login without polling inventories. It never scans worlds or loads chunks.
 - **Vanilla Vaults:** detects absolute Vault timers inherited from a world with a later game clock. `/justcompatible vaults scan` is read-only; `/justcompatible vaults repair` backs up and resets only impossible timers while preserving keys, loot tables, states, and rewarded players. It never scans or loads chunks and does not match Create Item Vaults.
 
 ## Advanced Waystones migration
