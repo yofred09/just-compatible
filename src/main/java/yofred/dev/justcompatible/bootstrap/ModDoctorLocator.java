@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -44,6 +46,9 @@ public final class ModDoctorLocator implements IDependencyLocator {
     private static final Pattern DEP_BLOCK = Pattern.compile("(?ms)\\[\\[dependencies\\.[^]]+]](.*?)(?=\\[\\[|\\z)");
     private static final Pattern SIDE = Pattern.compile("(?m)^\\s*side\\s*=\\s*[\"']CLIENT[\"']", Pattern.CASE_INSENSITIVE);
     private static final Pattern DEP_ID = Pattern.compile("(?m)^\\s*modId\\s*=\\s*[\"'](minecraft|neoforge|forge)[\"']", Pattern.CASE_INSENSITIVE);
+    private static final Set<String> PROTECTED_IDS = Set.of("minecraft", "neoforge", "javafml", "lowcodefml", "justcompatible", "justcore");
+    public static final String REPORT_FILE = "justcompatible-mod-doctor-report.txt";
+    public static final String MANIFEST_FILE = "justcompatible-mod-doctor-manifest.jsonl";
 
     public ModDoctorLocator() {
         if (!isDedicatedServer()) return;
@@ -105,13 +110,14 @@ public final class ModDoctorLocator implements IDependencyLocator {
         // One action per file, with client-only taking precedence in the report.
         Map<Path, Action> unique = new HashMap<>();
         for (Action action : actions) unique.putIfAbsent(action.jar().path(), action);
-        Path report = configDir.resolve("justcompatible-mod-doctor-report.txt");
+        Path report = configDir.resolve(REPORT_FILE);
         List<String> reportLines = new ArrayList<>();
         reportLines.add("Just Compatible Mod Doctor - " + Instant.now());
         reportLines.add("Scanned jars: " + jars.size());
         reportLines.add("Safe candidates: " + unique.size());
         reportLines.add("Automatic quarantine: " + autoFix);
 
+        unique.entrySet().removeIf(entry -> entry.getValue().jar().modIds().stream().anyMatch(PROTECTED_IDS::contains));
         if (unique.isEmpty()) {
             LOGGER.info("[Just Compatible/Mod Doctor] Scanned {} jars; no safe cleanup candidates found.", jars.size());
         } else if (!autoFix) {
@@ -129,11 +135,63 @@ public final class ModDoctorLocator implements IDependencyLocator {
                     Files.move(source, destination);
                 }
                 reportLines.add("QUARANTINED " + source.getFileName() + " -> " + destination.getFileName() + " :: " + action.reason());
+                appendManifest(configDir.resolve(MANIFEST_FILE), source, destination, action);
                 LOGGER.warn("[Just Compatible/Mod Doctor] Quarantined {}: {}", source.getFileName(), action.reason());
             }
         }
         Files.write(report, reportLines, StandardCharsets.UTF_8);
     }
+
+    private static void appendManifest(Path manifest, Path source, Path destination, Action action) throws IOException {
+        String json = "{\"timestamp\":\"" + Instant.now() + "\",\"original\":\"" + escape(source.toAbsolutePath().toString())
+                + "\",\"quarantined\":\"" + escape(destination.toAbsolutePath().toString()) + "\",\"sha256\":\""
+                + sha256(destination) + "\",\"version\":\"" + escape(action.jar().version()) + "\",\"reason\":\""
+                + escape(action.reason()) + "\"}" + System.lineSeparator();
+        Files.writeString(manifest, json, StandardCharsets.UTF_8,
+                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+    }
+
+    public static List<String> readReport() throws IOException {
+        Path report = FMLPaths.GAMEDIR.get().resolve("config").resolve(REPORT_FILE);
+        return Files.exists(report) ? Files.readAllLines(report, StandardCharsets.UTF_8) : List.of("No Mod Doctor report exists yet.");
+    }
+
+    public static int restoreAll() throws IOException {
+        Path manifest = FMLPaths.GAMEDIR.get().resolve("config").resolve(MANIFEST_FILE);
+        if (!Files.exists(manifest)) return 0;
+        Pattern original = Pattern.compile("\\\"original\\\":\\\"([^\\\"]+)\\\"");
+        Pattern quarantined = Pattern.compile("\\\"quarantined\\\":\\\"([^\\\"]+)\\\"");
+        int restored = 0;
+        for (String line : Files.readAllLines(manifest, StandardCharsets.UTF_8)) {
+            Matcher sourceMatch = original.matcher(line);
+            Matcher quarantineMatch = quarantined.matcher(line);
+            if (!sourceMatch.find() || !quarantineMatch.find()) continue;
+            Path source = Path.of(unescape(sourceMatch.group(1)));
+            Path quarantine = Path.of(unescape(quarantineMatch.group(1)));
+            if (Files.exists(quarantine) && !Files.exists(source)) {
+                Files.move(quarantine, source);
+                restored++;
+            }
+        }
+        if (restored > 0) Files.move(manifest, manifest.resolveSibling(MANIFEST_FILE + ".restored-" + Instant.now().toEpochMilli()));
+        return restored;
+    }
+
+    private static String sha256(Path path) throws IOException {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (InputStream input = Files.newInputStream(path)) {
+                byte[] buffer = new byte[8192];
+                for (int read; (read = input.read(buffer)) >= 0;) digest.update(buffer, 0, read);
+            }
+            return java.util.HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IOException(impossible);
+        }
+    }
+
+    private static String escape(String value) { return value.replace("\\", "\\\\").replace("\"", "\\\""); }
+    private static String unescape(String value) { return value.replace("\\\"", "\"").replace("\\\\", "\\"); }
 
     private static boolean readAutoFix(Path config) throws IOException {
         if (!Files.exists(config)) {

@@ -3,6 +3,7 @@ package yofred.dev.justcompatible;
 import com.mojang.brigadier.CommandDispatcher;
 import java.nio.file.Path;
 import java.io.IOException;
+import java.util.List;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -10,6 +11,7 @@ import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import yofred.dev.justcompatible.compat.waystones.WaystoneMigration;
 import yofred.dev.justcompatible.compat.vault.VaultTimerMigration;
+import yofred.dev.justcompatible.bootstrap.ModDoctorLocator;
 
 public final class JustCompatibleCommands {
     public static void register(RegisterCommandsEvent event) {
@@ -21,6 +23,12 @@ public final class JustCompatibleCommands {
                 .then(Commands.literal("repair")
                         .requires(source -> source.hasPermission(4))
                         .executes(context -> repairAll(context.getSource())))
+                .then(Commands.literal("doctor")
+                        .then(Commands.literal("status").executes(context -> doctorStatus(context.getSource())))
+                        .then(Commands.literal("report").executes(context -> doctorReport(context.getSource())))
+                        .then(Commands.literal("restore")
+                                .requires(source -> source.hasPermission(4))
+                                .executes(context -> doctorRestore(context.getSource()))))
                 .then(Commands.literal("waystones")
                         .then(Commands.literal("scan").executes(context -> scan(context.getSource())))
                         .then(Commands.literal("repair")
@@ -31,6 +39,39 @@ public final class JustCompatibleCommands {
                         .then(Commands.literal("repair")
                                 .requires(source -> source.hasPermission(4))
                                 .executes(context -> repairVaults(context.getSource())))));
+    }
+
+    private static int doctorStatus(CommandSourceStack source) {
+        try {
+            List<String> lines = ModDoctorLocator.readReport();
+            lines.stream().limit(4).forEach(line -> source.sendSuccess(() -> Component.literal(line), false));
+            return lines.size();
+        } catch (IOException error) {
+            source.sendFailure(Component.literal("Could not read Mod Doctor status: " + error.getMessage()));
+            return 0;
+        }
+    }
+
+    private static int doctorReport(CommandSourceStack source) {
+        try {
+            List<String> lines = ModDoctorLocator.readReport();
+            lines.stream().limit(100).forEach(line -> source.sendSuccess(() -> Component.literal(line), false));
+            return lines.size();
+        } catch (IOException error) {
+            source.sendFailure(Component.literal("Could not read Mod Doctor report: " + error.getMessage()));
+            return 0;
+        }
+    }
+
+    private static int doctorRestore(CommandSourceStack source) {
+        try {
+            int restored = ModDoctorLocator.restoreAll();
+            source.sendSuccess(() -> Component.literal("Restored " + restored + " quarantined mod files. Restart required."), true);
+            return restored;
+        } catch (IOException error) {
+            source.sendFailure(Component.literal("Restore aborted safely: " + error.getMessage()));
+            return 0;
+        }
     }
 
     private static int info(CommandSourceStack source) {

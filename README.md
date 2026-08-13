@@ -1,6 +1,6 @@
 # Just Compatible
 
-Server-side compatibility diagnostics and safe migration framework for Minecraft 1.21.1 NeoForge.
+Server-side compatibility, migration and preventive diagnostics for Minecraft 1.21.1 NeoForge.
 
 Community, support and bug reports: [join the yofred.dev Discord](https://discord.gg/cCHeBPKkD).
 
@@ -14,12 +14,20 @@ Optional integrations deliberately declare no mod version range. Reference JARs 
 
 `/justcompatible scan` shows active integrations and performs a Waystones dry run. `/justcompatible repair` applies only unambiguous Waystones migrations after writing a backup.
 
+## Three pillars
+
+- **World recovery:** safely reconciles data after servers change dimensions or world clocks.
+- **Mod compatibility:** targeted adapters for Waystones, Vinery, Starcatcher, Bountiful Baubles and vanilla Vaults.
+- **Server health:** the early Mod Doctor reports unsafe client-only JARs and conservative duplicate candidates before normal mod discovery.
+
 ## Safety rules
 
 - No dimension name is hardcoded.
 - Runtime adapters do not write chunks, inventories, or `level.dat`.
 - Waystones is the only persistent migration. It requires UUID + position evidence, backs up first, and rolls the whole in-memory batch back if rebuilding its index fails.
 - Unknown and ambiguous records are reported and left untouched.
+- The Mod Doctor never deletes JARs. Automatic quarantine is disabled by default and every move records original path, destination, SHA-256, version, reason and timestamp.
+- Just Compatible, Just Core, Minecraft, NeoForge and language-provider identifiers are protected from quarantine.
 
 ## Integrations
 
@@ -38,3 +46,22 @@ Optional integrations deliberately declare no mod version range. Reference JARs 
 `/justcompatible waystones repair` writes a JSON backup, updates only unambiguous matches, rebuilds Waystones indexes, and synchronizes online players. Player discoveries remain valid because waystone UUIDs are preserved.
 
 Optional mappings can be configured as `old_namespace:world=new_namespace:world`, but they are accepted only when the destination contains a matching waystone UUID at the same position.
+
+## Commands
+
+- `/justcompatible info` — integration status.
+- `/justcompatible scan` — global read-only scan.
+- `/justcompatible doctor status` — summary of the latest startup scan.
+- `/justcompatible doctor report` — displays the latest report.
+- `/justcompatible doctor restore` — restores every available quarantined JAR and requests a restart.
+- `/justcompatible waystones scan|repair` — explicit Waystones migration.
+- `/justcompatible vaults scan|repair` — loaded-chunk-only Vault timer migration.
+
+## Mod Doctor files
+
+- `config/justcompatible-mod-doctor.properties` — early bootstrap settings.
+- `config/justcompatible-mod-doctor-report.txt` — human-readable latest scan.
+- `config/justcompatible-mod-doctor-manifest.jsonl` — append-only reversible quarantine history.
+- `mods/justcompatible-quarantine/` — quarantined files; never deleted.
+
+Set `automaticSafeFixes=true` only after reviewing a report. Changes apply on the next restart.
