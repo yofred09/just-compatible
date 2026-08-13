@@ -4,6 +4,8 @@ Server-side compatibility diagnostics and safe migration framework for Minecraft
 
 Community, support and bug reports: [join the yofred.dev Discord](https://discord.gg/cCHeBPKkD).
 
+Official binary downloads are distributed exclusively through CurseForge and Modrinth. GitHub is used for source code, issue tracking, tags, and changelogs only.
+
 ## Simple use
 
 Install it on the server with Just Core. Runtime fixes for Vinery, Starcatcher and Bountiful Baubles activate automatically when those mods are present.
