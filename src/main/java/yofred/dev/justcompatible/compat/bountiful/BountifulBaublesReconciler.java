@@ -16,7 +16,10 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.SlotContext;
+import top.theillusivec4.curios.api.type.capability.ICurioItem;
 import yofred.dev.justcompatible.JustCompatible;
 import yofred.dev.justcompatible.JustCompatibleConfig;
 import yofred.dev.justcompatible.mixin.MindsEyeStateAccessor;
@@ -39,6 +42,26 @@ public final class BountifulBaublesReconciler {
             JustCompatible.LOGGER.info("Repaired a migrated Bountiful Baubles clock on use for {}",
                     player.getGameProfile().getName());
         }
+    }
+
+    /** Runs missing Bountiful curio ticks once, while the companion mixin prevents duplicate execution. */
+    public static void onPlayerTick(PlayerTickEvent.Post event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)
+                || !JustCompatibleConfig.BOUNTIFUL_RECONCILE.get()) return;
+        long gameTime = player.level().getGameTime();
+        CuriosApi.getCuriosInventory(player).ifPresent(handler ->
+                handler.getCurios().forEach((identifier, slot) -> {
+                    var contents = slot.getStacks();
+                    for (int i = 0; i < contents.getSlots(); i++) {
+                        ItemStack stack = contents.getStackInSlot(i);
+                        if (stack.isEmpty()
+                                || !BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace().equals("bountifulbaubles")
+                                || !(stack.getItem() instanceof ICurioItem curio)
+                                || BountifulCurioTickTracker.wasTicked(stack, gameTime)) continue;
+                        boolean visible = i < slot.getRenders().size() && slot.getRenders().get(i);
+                        curio.curioTick(new SlotContext(identifier, player, i, false, visible), stack);
+                    }
+                }));
     }
 
     public static void reconcile(ServerPlayer player) {
